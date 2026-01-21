@@ -1,0 +1,136 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # MQTT Broker
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+
+  # Catalog Service
+  catalog:
+    build: .
+    command: python catalog_registry.py
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    restart: on-failure
+    environment:
+      - TZ=Europe/Rome
+
+  # Sensor Connectors
+  sensors:
+    build: .
+    command: python Device_connectors/DC_instancer.py
+    ports:
+      - "8085:8085"
+    volumes:
+      - .:/app
+    depends_on:
+      - catalog
+      - mosquitto
+    restart: on-failure
+    environment:
+      - TZ=Europe/Rome
+
+  # Actuator Connectors
+  actuators:
+    build: .
+    command: python Device_connectors/DC_instancer_actuator.py
+    ports:
+      - "8086:8086"
+    volumes:
+      - .:/app
+    depends_on:
+      - catalog
+      - mosquitto
+    restart: on-failure
+    environment:
+      - TZ=Europe/Rome
+
+  # Control Unit
+  control-unit:
+    build: .
+    command: python Control_units/CU_instancer.py
+    volumes:
+      - .:/app
+    depends_on:
+      - catalog
+      - mosquitto
+    restart: on-failure
+    environment:
+      - TZ=Europe/Rome
+
+  # ThingSpeak Adaptor
+  adaptor:
+    build: .
+    command: python ThingSpeak/adaptor.py
+    ports:
+      - "8099:8099"
+    volumes:
+      - .:/app
+    depends_on:
+      - catalog
+      - mosquitto
+    restart: on-failure
+
+  # Operator Control (API)
+  operator-control:
+      build: .
+      command: python User_awareness/operator_control.py
+      ports:
+        - "8095:8095"
+      volumes:
+        - .:/app
+      depends_on:
+        - catalog
+        - sensors
+        - actuators
+      restart: on-failure
+      environment:
+      - TZ=Europe/Rome
+
+  # Web Frontend
+  frontend:
+      build: .
+      #Set the working directory directly
+      working_dir: /app/User_awareness/frontend
+      #The command is now simpler
+      command: python -m http.server 8000
+      ports:
+        - "8000:8000"
+      volumes:
+        - .:/app
+      restart: on-failure
+
+  telegram-bot:
+    build: .
+    working_dir: /app/User_awareness
+    command: python telegram_bot.py
+    volumes:
+      - .:/app
+    # Ensure operator-control is running before the bot starts
+    depends_on:
+      - operator-control
+    restart: on-failure
+    environment:
+      - TZ=Europe/Rome
+
+  admin-panel:
+    build: .
+    command: python admin_panel/admin_panel.py
+    ports:
+      - "8081:8081"
+    volumes:
+      - .:/app
+    depends_on:
+      - catalog
+    restart: on-failure
+    environment:
+      - TZ=Europe/Rome
