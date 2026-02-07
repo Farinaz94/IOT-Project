@@ -1,0 +1,264 @@
+{
+    "projectOwner": "ThiefDetector Team",
+    "projectName": "ThiefDetector",
+    "lastUpdate": "2025-08-14 19:36:36",
+    "broker": {
+        "IP": "mosquitto",
+        "port": 1883
+    },
+    "topic": "ThiefDetector",
+    "housesList": [
+        {
+            "houseID": "1",
+            "houseName": "House 1",
+            "installationDate": "2024-12-01",
+            "lastUpdate": "2024-12-28 14:30:00",
+            "floors": [
+                {
+                    "floorID": "1",
+                    "units": [
+                        {
+                            "unitID": "1",
+                            "urlSensors": "http://sensors:8085/raspberry_1-1-1",
+                            "urlActuators": "http://actuators:8086/arduino_1-1-1",
+                            "devicesList": [
+                                {
+                                    "deviceID": 20101,
+                                    "deviceName": "motion_sensor",
+                                    "deviceStatus": "No Motion",
+                                    "availableStatuses": [
+                                        "Detected",
+                                        "No Motion"
+                                    ],
+                                    "deviceLocation": {
+                                        "houseID": 1,
+                                        "floorID": 1,
+                                        "unitID": 1
+                                    },
+                                    "measureType": [
+                                        "motion"
+                                    ],
+                                    "availableServices": [
+                                        "MQTT"
+                                    ],
+                                    "servicesDetails": [
+                                        {
+                                            "serviceType": "MQTT",
+                                            "topic": [
+                                                "ThiefDetector/sensors/1/1/1/motion_sensor"
+                                            ]
+                                        }
+                                    ],
+                                    "lastUpdate": "2025-08-14 19:36:36"
+                                }
+                            ]
+                        },
+                        {
+                            "unitID": "2",
+                            "urlSensors": "http://sensors:8085/raspberry_1-1-2",
+                            "urlActuators": "http://actuators:8086/arduino_1-1-2",
+                            "devicesList": [
+                                {
+                                    "deviceID": 20102,
+                                    "deviceName": "motion_sensor",
+                                    "deviceStatus": "No Motion",
+                                    "availableStatuses": [
+                                        "Detected",
+                                        "No Motion"
+                                    ],
+                                    "deviceLocation": {
+                                        "houseID": 1,
+                                        "floorID": 1,
+                                        "unitID": 2
+                                    },
+                                    "measureType": [
+                                        "motion"
+                                    ],
+                                    "availableServices": [
+                                        "MQTT"
+                                    ],
+                                    "servicesDetails": [
+                                        {
+                                            "serviceType": "MQTT",
+                                            "topic": [
+                                                "ThiefDetector/sensors/1/1/2/motion_sensor"
+                                            ]
+                                        }
+                                    ],
+                                    "lastUpdate": "2025-08-14 19:36:36"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "floorID": "2",
+                    "units": [
+                        {
+                            "unitID": "1",
+                            "urlSensors": "http://sensors:8085/raspberry_1-2-1",
+                            "urlActuators": "http://actuators:8086/arduino_1-2-1",
+                            "devicesList": [
+                                {
+                                    "deviceID": 20103,
+                                    "deviceName": "motion_sensor",
+                                    "deviceStatus": "No Motion",
+                                    "availableStatuses": [
+                                        "Detected",
+                                        "No Motion"
+                                    ],
+                                    "deviceLocation": {
+                                        "houseID": 1,
+                                        "floorID": 2,
+                                        "unitID": 1
+                                    },
+                                    "measureType": [
+                                        "motion"
+                                    ],
+                                    "availableServices": [
+                                        "MQTT"
+                                    ],
+                                    "servicesDetails": [
+                                        {
+                                            "serviceType": "MQTT",
+                                            "topic": [
+                                                "ThiefDetector/sensors/1/2/1/motion_sensor"
+                                            ]
+                                        }
+                                    ],
+                                    "lastUpdate": "2025-08-14 19:36:36"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "houseID": "2",
+            "houseName": "House 2",
+            "installationDate": "2024-12-05",
+            "lastUpdate": "2024-12-28 14:30:00",
+            "floors": [
+                {
+                    "floorID": "1",
+                    "units": [
+                        {
+                            "unitID": "1",
+                            "urlSensors": "http://sensors:8085/raspberry_2-1-1",
+                            "urlActuators": "http://actuators:8086/arduino_2-1-1",
+                            "devicesList": [
+                                {
+                                    "deviceID": 30101,
+                                    "deviceName": "motion_sensor",
+                                    "deviceStatus": "No Motion",
+                                    "availableStatuses": [
+                                        "Detected",
+                                        "No Motion"
+                                    ],
+                                    "deviceLocation": {
+                                        "houseID": 2,
+                                        "floorID": 1,
+                                        "unitID": 1
+                                    },
+                                    "measureType": [
+                                        "motion"
+                                    ],
+                                    "availableServices": [
+                                        "MQTT"
+                                    ],
+                                    "servicesDetails": [
+                                        {
+                                            "serviceType": "MQTT",
+                                            "topic": [
+                                                "ThiefDetector/sensors/2/1/1/motion_sensor"
+                                            ]
+                                        }
+                                    ],
+                                    "lastUpdate": "2025-08-14 19:36:36"
+                                }
+                            ]
+                        },
+                        {
+                            "unitID": "2",
+                            "urlSensors": "http://sensors:8085/raspberry_2-1-2",
+                            "urlActuators": "http://actuators:8086/arduino_2-1-2",
+                            "devicesList": [
+                                {
+                                    "deviceID": 30102,
+                                    "deviceName": "motion_sensor",
+                                    "deviceStatus": "No Motion",
+                                    "availableStatuses": [
+                                        "Detected",
+                                        "No Motion"
+                                    ],
+                                    "deviceLocation": {
+                                        "houseID": 2,
+                                        "floorID": 1,
+                                        "unitID": 2
+                                    },
+                                    "measureType": [
+                                        "motion"
+                                    ],
+                                    "availableServices": [
+                                        "MQTT"
+                                    ],
+                                    "servicesDetails": [
+                                        {
+                                            "serviceType": "MQTT",
+                                            "topic": [
+                                                "ThiefDetector/sensors/2/1/2/motion_sensor"
+                                            ]
+                                        }
+                                    ],
+                                    "lastUpdate": "2025-08-14 19:36:36"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "floorID": "2",
+                    "units": [
+                        {
+                            "unitID": "1",
+                            "urlSensors": "http://sensors:8085/raspberry_2-2-1",
+                            "urlActuators": "http://actuators:8086/arduino_2-2-1",
+                            "devicesList": [
+                                {
+                                    "deviceID": 30103,
+                                    "deviceName": "motion_sensor",
+                                    "deviceStatus": "No Motion",
+                                    "availableStatuses": [
+                                        "Detected",
+                                        "No Motion"
+                                    ],
+                                    "deviceLocation": {
+                                        "houseID": 2,
+                                        "floorID": 2,
+                                        "unitID": 1
+                                    },
+                                    "measureType": [
+                                        "motion"
+                                    ],
+                                    "availableServices": [
+                                        "MQTT"
+                                    ],
+                                    "servicesDetails": [
+                                        {
+                                            "serviceType": "MQTT",
+                                            "topic": [
+                                                "ThiefDetector/sensors/2/2/1/motion_sensor"
+                                            ]
+                                        }
+                                    ],
+                                    "lastUpdate": "2025-08-14 19:36:36"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
