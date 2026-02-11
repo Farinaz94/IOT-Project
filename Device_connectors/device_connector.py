@@ -5,8 +5,9 @@ import copy
 import cherrypy
 import logging
 import threading
+import hashlib
 
-from MyMQTT import MyMQTT
+from common.MyMQTT import MyMQTT
 from sensors import LightSensor, MotionSensor
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -26,7 +27,7 @@ class senPublisher():
     def publish(self, topic, msg):
         self.client.myPublish(topic, msg)
 
-class Device_connector():
+class DeviceConnector(): # Renamed from Device_connector
     exposed = True
 
     def __init__(self, catalog_url, DCConfiguration, baseClientID, houseID, floorID, unitID):
@@ -39,7 +40,7 @@ class Device_connector():
         self.DATA_AVG_INTERVAL = self.DCConfiguration.get("DATA_AVG_INTERVAL", 10)
         self.DATA_SENDING_INTERVAL = self.DCConfiguration.get("DATA_SENDING_INTERVAL", 15) # Faster for demo
         self.latest_light_reading = 0 
-
+        self.lock = threading.Lock()
 
         self._is_running = threading.Event()
 
@@ -48,6 +49,7 @@ class Device_connector():
             self.main_topic = main_topic
         except Exception as e:
             logger.error(f"Failed to get broker info from catalog: {e}")
+            # Should probably retry here too, but for now we return
             return
 
         self.senPublisher = senPublisher(self.clientID, broker, port)
@@ -60,10 +62,12 @@ class Device_connector():
         }
 
 
-        # It's important that this device has a unique ID. We'll base it on the light sensor's ID.
-        light_sensor_id = self.DCConfiguration["devicesList"][0]["deviceID"]
+        # Deterministic ID generation
+        unique_string = f"{houseID}_{floorID}_{unitID}_motion"
+        motion_sensor_id = int(hashlib.sha256(unique_string.encode('utf-8')).hexdigest(), 16) % 1000000
+
         motion_sensor_device = {
-            "deviceID": light_sensor_id + 10000, 
+            "deviceID": motion_sensor_id,
             "deviceName": "motion_sensor",
             "deviceStatus": "No Motion", # Initial status
             "availableStatuses": ["Detected", "No Motion"],
@@ -100,9 +104,12 @@ class Device_connector():
         if len(uri) != 0 and uri[0].lower() == "devices":
             response_data = json.loads(json.dumps(self.DCConfiguration)) # Create a deep copy
             # Find the light sensor and add its latest value
+            with self.lock:
+                current_light = self.latest_light_reading
+
             for device in response_data.get("devicesList", []):
                 if "light_sensor" in device.get("deviceName", ""):
-                    device["value"] = self.latest_light_reading
+                    device["value"] = current_light
             return response_data
         cherrypy.response.status = 404
         return {"error": "Invalid endpoint. Use /devices"}
@@ -137,7 +144,8 @@ class Device_connector():
 
     def get_sen_data(self):
         light_val = self.light_sensor.generate_data()
-        self.latest_light_reading = light_val
+        with self.lock:
+            self.latest_light_reading = light_val
         motion_val = self.motion_sensor.generate_data()
         motion_status = "Detected" if motion_val else "No Motion"
        
@@ -163,12 +171,17 @@ class Device_connector():
 
     def registerer(self):
         """Registers all devices this connector manages with the catalog."""
+        max_retries = 3
         for device in self.DCConfiguration["devicesList"]:
-            try:
-                # Use PUT for an "upsert" operation, which is simpler and more robust
-                response = requests.put(f"{self.catalog_url}/devices", json=device, timeout=5)
-                response.raise_for_status()
-                logger.info(f"Device '{device['deviceName']}' for {self.clientID} registered/updated successfully.")
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Error registering device '{device['deviceName']}' for {self.clientID}: {e}")
-
+            for attempt in range(max_retries):
+                try:
+                    # Use PUT for an "upsert" operation, which is simpler and more robust
+                    response = requests.put(f"{self.catalog_url}/devices", json=device, timeout=5)
+                    response.raise_for_status()
+                    logger.info(f"Device '{device['deviceName']}' for {self.clientID} registered/updated successfully.")
+                    break
+                except requests.exceptions.RequestException as e:
+                    logger.error(f"Attempt {attempt+1}/{max_retries} failed to register device '{device['deviceName']}' for {self.clientID}: {e}")
+                    time.sleep(2)
+            else:
+                logger.error(f"Failed to register device '{device['deviceName']}' after {max_retries} attempts.")

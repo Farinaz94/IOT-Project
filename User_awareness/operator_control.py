@@ -11,7 +11,7 @@ import cherrypy
 import time
 import json
 import threading
-from MyMQTT2 import MyMQTT 
+from common.MyMQTT import MyMQTT
 
 class OperatorControl:
     exposed = True
@@ -138,6 +138,8 @@ class OperatorControl:
                 
                 if isinstance(data, list):
                     all_devices.extend(data)
+                elif isinstance(data, dict) and "devicesList" in data:
+                    all_devices.extend(data["devicesList"])
                 
             except requests.exceptions.RequestException as e:
                 print(f"[ERROR] Operator failed to fetch from {full_url}: {e}")

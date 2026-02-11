@@ -1,9 +1,8 @@
 import cherrypy
 import json
 import datetime
-import sched
-import time
 import os
+import tempfile
 
 # Schema for validating a new device
 DEVICE_SCHEMA = {
@@ -37,9 +36,8 @@ class WebCatalogThiefDetector():
 
         self.deviceGetter()
 
-        self.scheduler = sched.scheduler(time.time, time.sleep)
-        self.scheduler.enter(0, 1, self.periodic_cleanup, ())
-        self.scheduler.run(blocking=False)
+        # Use CherryPy Monitor for background tasks
+        cherrypy.process.plugins.Monitor(cherrypy.engine, self.periodic_cleanup, frequency=600).subscribe()
 
     def validate_payload(self, payload, schema):
         """
@@ -89,6 +87,42 @@ class WebCatalogThiefDetector():
         else:
             return "Invalid URL. Try /broker, /devices, /device/{id}, /houses, /house/{houseID}, /topic"
 
+    def _update_device_in_catalog(self, device_data):
+        theTime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        device_data["lastUpdate"] = theTime
+        try:
+            houseID = str(device_data["deviceLocation"]["houseID"])
+            floorID = str(device_data["deviceLocation"]["floorID"])
+            unitID  = str(device_data["deviceLocation"]["unitID"])
+        except KeyError:
+            return "deviceLocation must contain houseID, floorID, unitID", 400
+
+        house = self.get_house_by_id(houseID)
+        if not house:
+            return f"No house found with ID {houseID}", 404
+        floorObj = self.get_floor_by_id(house, floorID)
+        if not floorObj:
+            return f"No floor {floorID} found in house {houseID}", 404
+        unitObj = self.get_unit_by_id(floorObj, unitID)
+        if not unitObj:
+            return f"No unit {unitID} found on floor {floorID} of house {houseID}", 404
+
+        existing_index = None
+        for i, dev in enumerate(unitObj["devicesList"]):
+            if str(dev.get("deviceID")) == str(device_data.get("deviceID")):
+                existing_index = i
+                break
+
+        if existing_index is not None:
+            unitObj["devicesList"][existing_index] = device_data
+        else:
+            unitObj["devicesList"].append(device_data)
+
+        self.catalog["lastUpdate"] = theTime
+        self.save_catalog()
+        self.deviceGetter()
+        return "Device updated/added successfully", 200 # Changed message to be generic
+
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     def POST(self, *uri, **params):
@@ -115,40 +149,12 @@ class WebCatalogThiefDetector():
             if errors:
                 return {"errors": errors}
 
-            theTime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            newDevice["lastUpdate"] = theTime
-            try:
-                houseID = str(newDevice["deviceLocation"]["houseID"])
-                floorID = str(newDevice["deviceLocation"]["floorID"])
-                unitID  = str(newDevice["deviceLocation"]["unitID"])
-            except KeyError:
-                return "deviceLocation must contain houseID, floorID, unitID"
-
-            house = self.get_house_by_id(houseID)
-            if not house:
-                return f"No house found with ID {houseID}"
-            floorObj = self.get_floor_by_id(house, floorID)
-            if not floorObj:
-                return f"No floor {floorID} found in house {houseID}"
-            unitObj = self.get_unit_by_id(floorObj, unitID)
-            if not unitObj:
-                return f"No unit {unitID} found on floor {floorID} of house {houseID}"
-
-            existing_index = None
-            for i, dev in enumerate(unitObj["devicesList"]):
-                if str(dev.get("deviceID")) == str(newDevice.get("deviceID")):
-                    existing_index = i
-                    break
-
-            if existing_index is not None:
-                unitObj["devicesList"][existing_index] = newDevice
-            else:
-                unitObj["devicesList"].append(newDevice)
-
-            self.catalog["lastUpdate"] = theTime
-            self.save_catalog()
-            self.deviceGetter()
-            return "Device added successfully", 201
+            msg, code = self._update_device_in_catalog(newDevice)
+            if code != 200:
+                cherrypy.response.status = code
+                return msg
+            cherrypy.response.status = 201
+            return "Device added successfully"
 
         else:
             return "Invalid path. Use /houses or /devices to add new items."
@@ -187,40 +193,9 @@ class WebCatalogThiefDetector():
             if errors:
                 return {"errors": errors}
 
-            theTime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            updatedDevice["lastUpdate"] = theTime
-            try:
-                houseID = str(updatedDevice["deviceLocation"]["houseID"])
-                floorID = str(updatedDevice["deviceLocation"]["floorID"])
-                unitID  = str(updatedDevice["deviceLocation"]["unitID"])
-            except KeyError:
-                return "deviceLocation must contain houseID, floorID, unitID"
-
-            house = self.get_house_by_id(houseID)
-            if not house:
-                return f"No house found with ID {houseID}", 404
-            floorObj = self.get_floor_by_id(house, floorID)
-            if not floorObj:
-                return f"No floor {floorID} found in house {houseID}", 404
-            unitObj = self.get_unit_by_id(floorObj, unitID)
-            if not unitObj:
-                return f"No unit {unitID} found on floor {floorID} of house {houseID}", 404
-
-            existing_index = None
-            for i, dev in enumerate(unitObj["devicesList"]):
-                if str(dev["deviceID"]) == str(updatedDevice["deviceID"]):
-                    existing_index = i
-                    break
-
-            if existing_index is not None:
-                unitObj["devicesList"][existing_index] = updatedDevice
-            else:
-                unitObj["devicesList"].append(updatedDevice)
-
-            self.catalog["lastUpdate"] = theTime
-            self.save_catalog()
-            self.deviceGetter()
-            return "Device updated successfully", 200
+            msg, code = self._update_device_in_catalog(updatedDevice)
+            cherrypy.response.status = code
+            return "Device updated successfully" if code == 200 else msg
 
         else:
             return "Invalid path. Use /houses or /devices to update items."
@@ -285,6 +260,7 @@ class WebCatalogThiefDetector():
         return None
 
     def periodic_cleanup(self):
+        # This method is now called by CherryPy Monitor
         THRESHOLD = 1
         now = datetime.datetime.now()
         cutoff = now - datetime.timedelta(hours=THRESHOLD)
@@ -301,17 +277,24 @@ class WebCatalogThiefDetector():
         self.catalog["lastUpdate"] = now.strftime("%Y-%m-%d %H:%M:%S")
         self.save_catalog()
         self.deviceGetter()
-        self.scheduler.enter(600, 1, self.periodic_cleanup, ())
+        # No need to reschedule, Monitor handles it
 
     def save_catalog(self):
         try:
             script_dir = os.path.dirname(__file__)
             catalog_file_path = os.path.join(script_dir, 'catalog.json')
-            with open(catalog_file_path, 'w') as fptr:
-                print(f"Saving catalog to {catalog_file_path}")
-                json.dump(self.catalog, fptr, indent=4)
+
+            # Atomic save: write to temp file then rename
+            with tempfile.NamedTemporaryFile('w', dir=script_dir, delete=False) as tf:
+                json.dump(self.catalog, tf, indent=4)
+                temp_name = tf.name
+
+            os.replace(temp_name, catalog_file_path)
+            print(f"Saving catalog to {catalog_file_path}")
         except Exception as e:
             print(f"Error saving catalog: {e}")
+            if 'temp_name' in locals() and os.path.exists(temp_name):
+                os.remove(temp_name)
 
 if __name__ == "__main__":
     conf = {

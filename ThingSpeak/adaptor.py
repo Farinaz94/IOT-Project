@@ -2,7 +2,7 @@ import requests
 import time
 import threading
 from flask import Flask
-from MyMQTT2 import MyMQTT
+from common.MyMQTT import MyMQTT
 
 class Adaptor:
     def __init__(self, catalog_url):
