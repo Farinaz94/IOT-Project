@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThiefDetector Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">🛡️ ThiefDetector Admin Panel</h1>
+
+        <div class="card mb-4">
+            <div class="card-header fw-bold">Add New House</div>
+            <div class="card-body">
+                <form action="/add/house" method="POST" class="row g-3">
+                    <div class="col-md">
+                        <input type="text" class="form-control" name="houseID" placeholder="House ID (e.g., 3)" required>
+                    </div>
+                    <div class="col-md">
+                        <input type="text" class="form-control" name="houseName" placeholder="House Name (e.g., House 3)" required>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Add House</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% for house in houses %}
+        <div class="card house-card mb-3">
+            <div class="card-header"><h4>{{ house.houseName }} (ID: {{ house.houseID }})</h4></div>
+            <div class="card-body">
+                
+                <form action="/add/floor" method="POST" class="mb-3">
+                    <input type="hidden" name="houseID" value="{{ house.houseID }}">
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="floorID" placeholder="New Floor ID" required>
+                        <button class="btn btn-secondary" type="submit">Add Floor</button>
+                    </div>
+                </form>
+                
+                {% for floor in house.floors %}
+                <div class="card floor-card mb-3 ms-4">
+                    <div class="card-header"><h5>Floor {{ floor.floorID }}</h5></div>
+                    <div class="card-body">
+
+                        <form action="/add/unit" method="POST" class="mb-3">
+                            <input type="hidden" name="houseID" value="{{ house.houseID }}">
+                            <input type="hidden" name="floorID" value="{{ floor.floorID }}">
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="unitID" placeholder="New Unit ID" required>
+                                <button class="btn btn-info" type="submit">Add Unit</button>
+                            </div>
+                        </form>
+
+                        {% for unit in floor.units %}
+                        <div class="card unit-card mb-3 ms-4">
+                            <div class="card-header"><h6>Unit {{ unit.unitID }}</h6></div>
+                            <div class="card-body">
+                                <form action="/add/device" method="POST" class="mb-4">
+                                    <input type="hidden" name="houseID" value="{{ house.houseID }}">
+                                    <input type="hidden" name="floorID" value="{{ floor.floorID }}">
+                                    <input type="hidden" name="unitID" value="{{ unit.unitID }}">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="deviceID" placeholder="New Motion Sensor ID" required>
+                                        <button type="submit" class="btn btn-success">Add Motion Sensor</button>
+                                    </div>
+                                </form>
+
+                                <ul class="list-group">
+                                    {% for device in unit.devicesList %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        {{ device.deviceName }} (ID: {{ device.deviceID }})
+                                        <form action="/delete/device" method="POST" class="mb-0">
+                                            <input type="hidden" name="deviceID" value="{{ device.deviceID }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                        </form>
+                                    </li>
+                                    {% else %}
+                                    <li class="list-group-item text-muted">No devices in this unit.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
