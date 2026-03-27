@@ -1,7 +1,7 @@
 import cherrypy
 import json
 import time
-from device_connector import Device_connector
+from device_connector import DeviceConnector
 import os
 
 settingSenFile = os.path.abspath("Device_connectors/setting_sen.json")
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         unitID  = config["unitID"]
 
         DC_name = f"raspberry_{DCID}"
-        deviceConnectors[DC_name] = Device_connector(
+        deviceConnectors[DC_name] = DeviceConnector(
             catalog_url,
             config,
             baseClientID,

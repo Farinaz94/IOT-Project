@@ -8,7 +8,7 @@ import json
 import telepot
 from telepot.loop import MessageLoop
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
-from MyMQTT2 import MyMQTT 
+from common.MyMQTT import MyMQTT
 
 class TeleBot:
     def __init__(self, token, operator_control_url, ownership_file, catalog_url):
